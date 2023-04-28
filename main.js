@@ -1,5 +1,6 @@
 const Adb = require('./adb')
 const BatteryStats = require('./battery')
+const Monkey = require('./monkey')
 const { getDevices, startServer, killServer } = require('./util/devices');
 
 const config = {
@@ -16,12 +17,14 @@ const main = async function () {
     const adb = new Adb(device);
 
     setInterval(async() => {
-      const batteryPromise = await adb.runShellCmd(`dumpsys battery`)
-      const battery = new BatteryStats(batteryPromise)
+      const battery = new BatteryStats(adb)
       battery.update();
       const data = battery.getBattery()
       console.log(`Battery: ${JSON.stringify(data)}`);
     }, 1000)
+
+    const monkey = new Monkey(adb, config.package);
+    monkey.start()
 
     const sn = await adb.getSN()
     console.log('sn:', sn)

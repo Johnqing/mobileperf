@@ -1,8 +1,6 @@
 const fs = require('fs');
-const { Writable } = require('stream');
 const os = require('os');
 const {exec, execSync, spawn } = require('child_process')
-const { Readable } = require('stream');
 
 const TimeUtils = require('./util/TimeUtils');
 const logger = require('./util/logger');

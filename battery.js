@@ -8,8 +8,8 @@ const regex = {
 };
 
 class BatteryInfo {
-  constructor(execPromise) {
-    this.execPromise = execPromise;
+  constructor(adb) {
+    this.adb = adb;
     this.data = {
       level: 0,
       temperature: 0,
@@ -44,7 +44,7 @@ class BatteryInfo {
   }
 
   async update() {
-    const stdout = this.execPromise;
+      const stdout = await this.adb.runShellCmd(`dumpsys battery`)
 
     return this.getPowerInfoDic(stdout)
   }

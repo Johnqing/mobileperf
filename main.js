@@ -1,30 +1,31 @@
-const util = require('util');
-const exec = util.promisify(require('child_process').exec);
+const Adb = require('./adb')
+const BatteryStats = require('./battery')
+const { getDevices, startServer, killServer } = require('./util/devices');
 
-async function executeAdbCommand(device, command) {
-  const adbCmd = `adb -s ${device} ${command}`;
-  const { stdout, stderr } = await exec(adbCmd);
-  if (stderr) {
-    console.error(`Error executing command: ${stderr}`);
-    return;
-  }
-  console.log(`Output for device ${device}:`);
-  console.log(stdout.trim());
+const config = {
+  package: 'com.yangcong345.cloud.pocket'
 }
 
-async function main() {
-  const devices = ['192.168.0.101:5555', '192.168.0.102:5555'];
-  const adbTcpCommand = 'tcpip 5555';
-  const adbConnectCommand = (device) => `connect ${device}`;
+const main = async function () {
+  killServer();
+  startServer();
 
-  for (let device of devices) {
-    await executeAdbCommand(device, adbTcpCommand);
-    await executeAdbCommand(device, adbConnectCommand(device));
-  }
+  const devices = await getDevices();
+  console.log('devices: ', devices)
+  devices.forEach( async (device) => {
+    const adb = new Adb(device);
 
-  // 执行其他 adb 命令
-  await executeAdbCommand(devices[0], 'shell ls');
-  await executeAdbCommand(devices[1], 'shell ps');
+    setInterval(async() => {
+      const batteryPromise = await adb.runShellCmd(`dumpsys battery`)
+      const battery = new BatteryStats(batteryPromise)
+      battery.update();
+      const data = battery.getBattery()
+      console.log(`Battery: ${JSON.stringify(data)}`);
+    }, 1000)
+
+    const sn = await adb.getSN()
+    console.log('sn:', sn)
+  });
 }
 
-main();
+main()

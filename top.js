@@ -8,11 +8,13 @@ class RealTimeTopCommandRunner {
     /**
      * 
      * @param {Adb} adb Adb对象
+     * @param {String} devicesId  切换到那个 deviceId
      * @param {String} packageName 特定 app 的包名
      * @param {number} [interval=1000] 定时器时间间隔（毫秒）
      */
-    constructor(adb, packageName = null, interval = 1000) {
+    constructor(adb, devicesId, packageName = null, interval = 1000) {
         this.adb = adb;
+        this.devicesId = devicesId;
         this.packageName = packageName;
         this.interval = interval;
         this.output = [];
@@ -25,6 +27,8 @@ class RealTimeTopCommandRunner {
     }
 
     async start() {
+        TOP_ARGS.unshift('-s')
+        TOP_ARGS.unshift(this.devicesId)
         // 启动 top 进程并设置 stdout 和 stderr 流
         this.topProcess = spawn(this.adb, TOP_ARGS);
         this.topProcess.stdout.on('data', data => {

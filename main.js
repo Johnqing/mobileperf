@@ -26,16 +26,16 @@ const runTests = async function () {
     const adb = new Adb(device);
 
     // 启动电池电量监控
-    const battery = new Battery({ adb });
+    const battery = new Battery(adb);
     battery.start();
 
     // 启动 Monkey 测试
-    const monkey = new Monkey(adb.getAdb(), config.package);
+    const monkey = new Monkey(adb.getAdb(), device, config.package);
     const startTime = Date.now();
     monkey.start();
 
     // 启动 top 监控
-    const top = new Top(adb.getAdb(), config.package);
+    const top = new Top(adb.getAdb(), device, config.package);
     top.start();
 
     // 定时结束测试任务

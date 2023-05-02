@@ -3,8 +3,9 @@ const logger = require('./util/logger');
 const fs = require('fs');
 
 class Monkey {
-  constructor(adb, pkg, timeout = 20000) {
+  constructor(adb, devicesId, pkg, timeout = 20000) {
     this.adb = adb;
+    this.devicesId = devicesId;
     this.package = pkg;
     this.timeout = timeout;
     this.process = null;
@@ -58,7 +59,7 @@ class Monkey {
   }
 
   async runMonkey(timeout = 1000) {
-    let monkeyCmd = `${this.adb} -s ${this.adb.getDeviceId()} shell monkey -p ${this.package} -v -v -v -s 1000 --ignore-crashes --ignore-timeouts --ignore-security-exceptions --kill-process-after-error --pct-appswitch 20 --pct-touch 40 --pct-motion 10 --pct-trackball 0 --pct-anyevent 10 --pct-flip 0 --pct-pinchzoom 0 --throttle 1000 ${timeout}`;
+    let monkeyCmd = `${this.adb} -s ${this.devicesId} shell monkey -p ${this.package} -v -v -v -s 1000 --ignore-crashes --ignore-timeouts --ignore-security-exceptions --kill-process-after-error --pct-appswitch 20 --pct-touch 40 --pct-motion 10 --pct-trackball 0 --pct-anyevent 10 --pct-flip 0 --pct-pinchzoom 0 --throttle 1000 ${timeout}`;
 
     const monkeyProcess = spawn(monkeyCmd, { stdio: 'pipe', shell: true });
     this.process = monkeyProcess;

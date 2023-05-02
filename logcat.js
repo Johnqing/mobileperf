@@ -7,8 +7,9 @@ const LOGCAT_ARGS = ['-v', 'time'];
 const logcatRegex = /^(\d+-\d+\s+\d+:\d+:\d+\.\d+)\s+(\d+)\s+(\S+)\s+(\S+)\s+(\S+)\s+([VDIWEFS])\/(.+?):\s+(.*)$/;
 
 class LogcatReader {
-  constructor(adb, filter = null) {
+  constructor(adb, devicesId, filter = null) {
     this.adb = adb;
+    this.devicesId = devicesId;
     this.filter = filter;
     this.logcatProcess = null;
   }
@@ -19,7 +20,7 @@ class LogcatReader {
     if (this.filter) {
       args.push(this.filter);
     }
-    this.logcatProcess = spawn(this.adb, ['logcat', ...args]);
+    this.logcatProcess = spawn(this.adb, ['logcat', '-s', this.devicesId, ...args]);
 
     // 监听 logcat 输出
     this.logcatProcess.stdout.on('data', data => {
@@ -42,18 +43,6 @@ class LogcatReader {
   // 停止 logcat 进程
   stop() {
     this.logcatProcess.kill();
-  }
-}
-
-// 创建一个 Adb 类，用于执行 adb 命令
-class Adb {
-  constructor(deviceId = '') {
-    this.deviceId = deviceId;
-  }
-
-  // 获取 adb 命令的完整路径，并加上设备 ID 参数
-  getAdb() {
-    return `adb${this.deviceId ? ` -s ${this.deviceId}` : ''}`;
   }
 }
 

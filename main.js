@@ -1,53 +1,61 @@
-const Adb = require('./adb')
-const Battery = require('./battery')
-const Monkey = require('./monkey')
+// 导入所需模块
+const Adb = require('./adb');
+const Battery = require('./battery');
+const Monkey = require('./monkey');
+const Top = require('./top');
 const { getDevices, startServer, killServer } = require('./util/devices');
 const TimeUtils = require('./util/TimeUtils');
 
+// 定义测试配置项
 const config = {
-  package: 'com.yangcong345.yxsq.settings'
-}
+  package: 'com.yangcong345.yxsq.settings',
+};
 
-const main = async function () {
+// 定义测试任务主函数
+const runTests = async function () {
+  // 终止并重启 ADB 服务
   killServer();
   startServer();
 
+  // 获取连接的设备列表
   const devices = await getDevices();
-  console.log('getDevices: ', devices)
+  console.log('Connected devices:', devices);
 
-  for (const device of devices) {
+  // 为每个设备创建一个测试任务
+  const testTasks = devices.map(async (device) => {
     const adb = new Adb(device);
 
-    const battery = new Battery(adb);
-    const startBattery = await battery.getBattery();
-    console.log(`Start battery level: ${startBattery.level}`);
+    // 启动电池电量监控
+    const battery = new Battery({ adb });
+    battery.start();
 
-    const monkey = new Monkey(adb, config.package);
+    // 启动 Monkey 测试
+    const monkey = new Monkey(adb.getAdb(), config.package);
     const startTime = Date.now();
     monkey.start();
 
-    //定时记录电池能耗
-    const batteryTimer = setInterval(async () => {
-      const currentBattery = await battery.getBattery();
-      const batteryUsage = startBattery.level - currentBattery.level;
-      console.log(`Battery usage: ${batteryUsage}%`);
-    }, 1000); // 时间单位为分钟
+    // 启动 top 监控
+    const top = new Top(adb.getAdb(), config.package);
+    top.start();
 
-    //定时结束 
+    // 定时结束测试任务
     await TimeUtils.tastTimer(async () => {
+      // monkey 需要优先结束。保证数据是 monkey 过程的中的
       monkey.stop();
       const endTime = Date.now();
-      console.log(`Monkey runtime: ${(endTime - startTime) / 1000}s`);
+      console.log(`Monkey runtime on ${device}: ${(endTime - startTime) / 1000}s`);
 
-      clearInterval(batteryTimer);
+      battery.stop();
 
-      const endBattery = await battery.getBattery();
-      console.log(`End battery level: ${endBattery.level}`);
+      top.stop();
+      
+      killServer();
+    }, 10000); // 时间单位为毫秒，这里设置时间为10秒
+  });
 
-      const batteryUsage = startBattery.level - endBattery.level;
-      console.log(`Battery usage: ${batteryUsage}%`);
-    }, 2); // 时间单位为秒，这里设置时间为10秒
-  }
-}
+  // 等待所有测试任务完成
+  await Promise.all(testTasks);
+};
 
-main()
+// 运行测试任务
+runTests();

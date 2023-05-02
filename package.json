@@ -10,6 +10,7 @@
   "license": "ISC",
   "dependencies": {
     "chalk": "^5.2.0",
+    "node-schedule": "^2.1.1",
     "which": "^3.0.0"
   }
 }

@@ -1,58 +1,55 @@
-
-
-const regex = {
-  level: /level:\s*(\d+)/,
-  temperature: /temperature:\s?(\d+)/,
-  current: /current now:\s?(\d+)/,
-  voltage: /(?:^|\W)voltage:\s*(\d+)/i,
-};
-
-class BatteryInfo {
+class Battery {
+  /**
+   * 构造函数
+   * @param {Adb} adb Adb对象
+   */
   constructor(adb) {
     this.adb = adb;
-    this.data = {
-      level: 0,
-      temperature: 0,
-      current: 0,
-      voltage: 0,
-      current_flag: -1,
-    };
   }
 
-  getPowerInfoDic(out) {
-    if (!out) {
-      return this.data;
-    }
-
-    const outArr = out.split(/\r|\n/);
-    outArr.shift();
-    
-    for (let index = 0; index < outArr.length; index++) {
-      const el = outArr[index].replace(/\s+/, '');
-      const elArr = el.split(':')
-      const key = elArr[0];
-      this.data[key] = elArr[1]
-    }
-  
-    if (this.data.current > 0) {
-      this.data.current_flag = 1;
-    } else {
-      this.data.current = 0;
-    }
-  
-    return this.data;
+  /**
+   * 获取电池信息
+   * @returns {Object} 电池信息对象
+   */
+  async getBattery() {
+    const output = await this.adb.runShellCmd('dumpsys battery');
+    return this.parseBatteryInfo(output);
   }
 
-  async update() {
-      const stdout = await this.adb.runShellCmd(`dumpsys battery`)
+  /**
+   * 解析电池信息输出
+   * @param {string} output 电池信息输出
+   * @returns {Object} 电池信息对象
+   */
+  parseBatteryInfo(output) {
+    const batteryInfo = {};
 
-    return this.getPowerInfoDic(stdout)
+    if (!output) {
+      return batteryInfo;
+    }
+
+    const lines = output.split(/\r|\n/).slice(1);
+    for (const line of lines) {
+      const [key, value] = this.parseLine(line);
+      batteryInfo[key] = value;
+    }
+
+    // 根据电流符号判断电流方向，并将电流值转换成正整数
+    batteryInfo.current_flag = batteryInfo.current > 0 ? 1 : -1;
+    batteryInfo.current = Math.abs(batteryInfo.current);
+
+    return batteryInfo;
   }
 
-
-  getBattery() {
-    return this.data;
+  /**
+   * 解析电池信息输出的每一行
+   * @param {string} line 电池信息输出的每一行
+   * @returns {[string, number]} 包含键和值的数组
+   */
+  parseLine(line) {
+    const [key, value] = line.replace(/\s+/g, '').split(':');
+    return [key, parseFloat(value)];
   }
 }
 
-module.exports = BatteryInfo
+module.exports = Battery;

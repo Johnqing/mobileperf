@@ -90,20 +90,39 @@ class Adb{
       }
     }
   }
-  async runCmdOnce(cmd) {
-    // 根据是否指定设备 ID 构造命令参数数组
-    const cmdArgs = this.deviceId ? ['-s', this.deviceId, cmd] : [cmd];
-    const command = `${adbPath} ${cmdArgs.join(' ')}`
-    logger.debug('runCmdOnce:', command);
+  // async runCmdOnce(cmd) {
+  //   // 根据是否指定设备 ID 构造命令参数数组
+  //   const cmdArgs = this.deviceId ? ['-s', this.deviceId, cmd] : [cmd];
+  //   const command = `${adbPath} ${cmdArgs.join(' ')}`
+  //   logger.debug('runCmdOnce:', command);
 
+  //   const result = await exec(command, { maxBuffer: 10 * 1024 * 1024 })
+  //   return result
+  // }
+  async runCmdOnce(cmd, options = {}) {
+    cmd = cmd.split(/\s+/);
+    const cmdArgs = this.deviceId ? ['-s', this.deviceId, ...cmd] : [...cmd];
+    const proc = spawn(adbPath, cmdArgs);
+    console.log('runCmdOnce: ', cmdArgs.join(' '))
+
+    const stdoutChunks = [];
+  
+    proc.stdout.on('data', (chunk) => {
+      stdoutChunks.push(chunk);
+    });
+  
     return new Promise((resolve, reject) => {
-      exec(command, { maxBuffer: 10 * 1024 * 1024 }, (error, stdout, stderr) => {
-        if (error) {
-          reject(error);
-        } else if (stderr) {
-          reject(new Error(stderr));
+      proc.on('close', (code) => {
+        const stdout = Buffer.concat(stdoutChunks).toString();
+        console.log('runCmdOnce-close:', code)
+        if (code === 0) {
+          if( options.proc ){
+            resolve({ proc: proc, stdout });
+          } else {
+            resolve(stdout);
+          }
         } else {
-          resolve(stdout);
+          reject(new Error(`Command failed with code ${code}`));
         }
       });
     });
@@ -187,6 +206,14 @@ class Adb{
   getSN() {
     const uuid = this.runShellCmd('getprop ro.boot.serialno');
     return uuid || '';
+  }
+
+  getDeviceId() {
+    return this.deviceId
+  }
+
+  getAdb() {
+    return adbPath
   }
 
   getGenieWifi() {

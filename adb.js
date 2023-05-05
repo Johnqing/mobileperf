@@ -5,7 +5,6 @@ const {exec, execSync, spawn } = require('child_process')
 const TimeUtils = require('./util/TimeUtils');
 const logger = require('./util/logger');
 const { getDevices, startServer, killServer} = require('./util/devices');
-const { resolve } = require('path');
 /**
  * execPromise执行命令
  * @returns 
@@ -103,7 +102,7 @@ class Adb{
     cmd = cmd.split(/\s+/);
     const cmdArgs = this.deviceId ? ['-s', this.deviceId, ...cmd] : [...cmd];
     const proc = spawn(adbPath, cmdArgs);
-    console.log('runCmdOnce: ', cmdArgs.join(' '))
+    console.log(`Running runCmdOnce: ${adbPath} ${cmdArgs.join(' ')}`);
 
     const stdoutChunks = [];
   
@@ -114,7 +113,7 @@ class Adb{
     return new Promise((resolve, reject) => {
       proc.on('close', (code) => {
         const stdout = Buffer.concat(stdoutChunks).toString();
-        console.log('runCmdOnce-close:', code)
+        console.log('runCmdOnce-close-code:', code)
         if (code === 0) {
           if( options.proc ){
             resolve({ proc: proc, stdout });
@@ -226,10 +225,11 @@ class Adb{
     return packageVer || '';
   }
 
-  getSdkVersion() {
+  async getSdkVersion() {
     /*获取SDK版本，如：16*/
     if (!this.sdkVersion) {
-      this.sdkVersion = parseInt(this.runShellCmd('getprop ro.build.version.sdk'));
+      const version = await this.runShellCmd('getprop ro.build.version.sdk')
+      this.sdkVersion = parseInt(version);
     }
     return this.sdkVersion;
   }

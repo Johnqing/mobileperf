@@ -25,14 +25,14 @@ const runTests = async function () {
   const testTasks = devices.map(async (device) => {
     const adb = new Adb(device);
 
-    // // 启动电池电量监控
-    // const battery = new Battery(adb);
-    // battery.start();
+    // 启动电池电量监控
+    const battery = new Battery(adb);
+    battery.start();
 
-    // // 启动 Monkey 测试
-    // const monkey = new Monkey(adb.getAdb(), adb.getDeviceId());
-    // const startTime = Date.now();
-    // monkey.start();
+    // 启动 Monkey 测试
+    const monkey = new Monkey(adb.getAdb(), adb.getDeviceId());
+    const startTime = Date.now();
+    monkey.start();
 
     // 启动 top 监控
     const top = new Top(adb.getAdb(), adb.getDeviceId(), config.package, adb.getSdkVersion());
@@ -41,10 +41,10 @@ const runTests = async function () {
     // 定时结束测试任务
     await TimeUtils.tastTimer(async () => {
       // monkey 需要优先结束。保证数据是 monkey 过程的中的
-      // battery.stop();
+      battery.stop();
       top.stop();
 
-      // monkey.stop();
+      monkey.stop();
       const endTime = Date.now();
       console.log(`Monkey runtime on ${device}: ${(endTime - startTime) / 1000}s`);
     }, 0.5); // 时间单位为分钟

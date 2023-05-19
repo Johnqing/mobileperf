@@ -1,5 +1,5 @@
 const { spawn, exec } = require('child_process');
-const logger = require('./util/logger');
+const log = require('./log')
 
 const TOP = 'top -b -n 1 -d'
 
@@ -13,10 +13,11 @@ class RealTimeTopCommandRunner {
     this.topCmd = `${this.adb} -s ${this.deviceId} shell ${TOP} ${interval}`;
     this.maxFreqCmd = `${this.adb} -s ${this.deviceId} shell "cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_max_freq"`;
     this.outputFilePath = './cpu_info.json';
+    this.timer = null;
   }
 
   async start() {
-    setInterval(async () => {
+    this.timer = setInterval(async () => {
       const cpuList = await this.collectPackageCpuThread();
       const maxFreq = await this.getMaxFreq();
       const cpuInfo = {
@@ -26,6 +27,10 @@ class RealTimeTopCommandRunner {
       };
       this.saveToJson(cpuInfo);
     }, this.interval);
+  }
+
+  async stop() {
+    clearInterval(this.timer)
   }
 
   async topCpuinfo(packages) {
@@ -94,7 +99,7 @@ class RealTimeTopCommandRunner {
   }
 
   saveToJson(data) {
-    console.log(data);
+    log.addOrUpdateJsonField('top', data)
   }
 }
 
@@ -203,39 +208,32 @@ class PckCpuinfo {
   }
 
   _parse_cpu_usage() {
-      const sp_lines = this.source.split('\n');
-      for (const line of sp_lines) {
-          if (line.includes("user") && line.includes("sys")) {
-              const tmp = line.split(/\s+/);
-                for (const item of tmp) {
-                  console.log('sys_rate', item)
-                  if (item.includes("user")) {
-                      const user_rate = item.match(/\d+/)
-                      this.user_rate = user_rate[0];
-                  } else if (item.includes("sys")) {
-                      const sys_rate = item.match(/\d+/)
-                      this.system_rate = sys_rate[0];
-                  } else if (item.includes("iow")) {
-                      const iow_rate = item.match(/\d+/)
-                      this.iow_rate = iow_rate[0];
-                  } else if (item.includes("irq")) {
-                      const irq_rate = item.match(/\d+/)
-                      this.irq_rate = irq_rate[0];
-                  } else if (item.includes("idle")) {
-                      const idle_rate = item.match(/\d+/)
-                      this.idle_rate = idle_rate[0];
-                  } else if (item.includes("nice")) {
-                      const nice_rate = item.match(/\d+/)
-                      this.nice_rate = nice_rate[0];
-                  }
-              }
-              break;
-          }
+    const sp_lines = this.source.split('\n');
+    for (const line of sp_lines) {
+      if (line.includes("user") && line.includes("sys")) {
+        const tmp = line.split(/\s+/);
+        this.system_rate = this._getRateValue(tmp, "sys");
+        this.user_rate = this._getRateValue(tmp, "user");
+        this.iow_rate = this._getRateValue(tmp, "iow");
+        this.irq_rate = this._getRateValue(tmp, "irq");
+        this.idle_rate = this._getRateValue(tmp, "idle");
+        this.nice_rate = this._getRateValue(tmp, "nice");
+        break;
       }
-      const device_cpu_rate = parseFloat(this.user_rate || 0) + parseFloat(this.system_rate || 0) + parseFloat(this.nice_rate || 0);
-      this.device_cpu_rate = device_cpu_rate.toFixed(2);
+    }
+    const device_cpu_rate = parseFloat(this.user_rate || 0) + parseFloat(this.system_rate || 0) + parseFloat(this.nice_rate || 0);
+    this.device_cpu_rate = device_cpu_rate.toFixed(2);
   }
 
+  _getRateValue(tmp, target) {
+    const item = tmp.find((str) => str.includes(target));
+    if (item) {
+      const rate = item.match(/\d+/);
+      return rate ? rate[0] : "";
+    }
+    return "";
+  }
+  
   toString() {
       return JSON.stringify(this);
   }

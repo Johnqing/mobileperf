@@ -62,6 +62,7 @@ class Monkey {
    * @param {number} [startTime] - The start time of the Monkey test.
    */
   start(startTime) {
+    this.stop()
     this.startTime = startTime || new Date().getTime();
 
     if (this.running) {

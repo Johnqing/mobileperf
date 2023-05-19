@@ -1,3 +1,4 @@
+const log = require('./log')
 class Battery {
   /**
    * 构造函数
@@ -18,7 +19,11 @@ class Battery {
     this.batteryTimer = setInterval(async () => {
       const currentBattery = await this.getBattery();
       const batteryUsage = this.startBattery.level - currentBattery.level;
-      console.log(`Battery usage: ${batteryUsage}%`);
+      
+      log.addOrUpdateJsonField('Battery', {
+        ...currentBattery,
+        batteryUsage
+      })
     }, this.interval);
   }
 

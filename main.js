@@ -3,6 +3,7 @@ const Adb = require('./adb');
 const Battery = require('./battery');
 const Monkey = require('./monkey');
 const Top = require('./topRunner');
+const FPSMonitor = require('./fps');
 const { getDevices, startServer, killServer } = require('./util/devices');
 const TimeUtils = require('./util/TimeUtils');
 
@@ -30,6 +31,7 @@ const runTests = async function () {
     battery.start();
 
     // 启动 Monkey 测试
+    // const monkey = new Monkey(adb.getAdb(), adb.getDeviceId(), config.package);
     const monkey = new Monkey(adb.getAdb(), adb.getDeviceId());
     const startTime = Date.now();
     monkey.start();
@@ -38,16 +40,19 @@ const runTests = async function () {
     const top = new Top(adb.getAdb(), adb.getDeviceId(), config.package, adb.getSdkVersion());
     top.start();
 
+    const fpsMonitor = new FPSMonitor(adb.getAdb(), adb.getDeviceId(), config.package, adb.getSdkVersion())
+    fpsMonitor.start()
+
     // 定时结束测试任务
     await TimeUtils.tastTimer(async () => {
-      // monkey 需要优先结束。保证数据是 monkey 过程的中的
       battery.stop();
       top.stop();
+      fpsMonitor.stop();
 
       monkey.stop();
       const endTime = Date.now();
       console.log(`Monkey runtime on ${device}: ${(endTime - startTime) / 1000}s`);
-    }, 0.5); // 时间单位为分钟
+    }, 60 * 3); // 时间单位为分钟
   });
 
   // 等待所有测试任务完成

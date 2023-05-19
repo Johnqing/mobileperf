@@ -1,3 +1,4 @@
+const log = require('./log')
 class Battery {
   /**
    * 构造函数
@@ -12,13 +13,17 @@ class Battery {
   /**
    * 启动电池信息定时记录
    */
-  start() {
-    this.getBattery();
+  async start() {
+    this.startBattery = await this.getBattery();
     // 定时记录电池能耗
     this.batteryTimer = setInterval(async () => {
       const currentBattery = await this.getBattery();
       const batteryUsage = this.startBattery.level - currentBattery.level;
-      console.log(`Battery usage: ${batteryUsage}%`);
+      
+      log.addOrUpdateJsonField('Battery', {
+        ...currentBattery,
+        batteryUsage
+      })
     }, this.interval);
   }
 
@@ -44,7 +49,7 @@ class Battery {
    * @returns {Object} 电池信息对象
    */
   parseBatteryInfo(output) {
-    const batteryInfo = {};
+    let batteryInfo = {};
 
     if (!output) {
       return batteryInfo;
